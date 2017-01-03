@@ -28,19 +28,18 @@
             android:name="com.amap.api.v2.apikey"
             android:value="186e58f56d3edf88535a0257f12cfa64"
         />
-        <activity android:name=".activity.MainActivity">
+        <activity android:name=".MainActivity">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN"/>
                 <category android:name="android.intent.category.LAUNCHER"/>
             </intent-filter>
         </activity>
-        <activity android:name=".activity.BasicMapActivity"/>
-        <activity android:name=".activity.CustomLocationActivity"/>
-        <activity android:name=".activity.ShowLocationInfoActivity"/>
+        <activity android:name=".activity.SimpleUseActivity"/>
         <activity android:name=".activity.WeatherSearchActivity"/>
-        <activity android:name=".LocationActivity"
+        <activity android:name=".activity.LocationActivity"
                   android:configChanges="orientation|screenSize|keyboardHidden"
                   android:screenOrientation="landscape"/>
+        <activity android:name=".activity.ClusterShowActivity"/>
 
         <!-- 定位需要的服务 使用2.0的定位需要加上这个 -->
         <service android:name="com.amap.api.location.APSService">

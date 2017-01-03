@@ -49,13 +49,14 @@ public class GDLocationUtil {
     }
 
     /**
-     * 设置定位点显示样式
+     * 设置定位点显示样式(红色，圆形边框)
      * @param aMap 地图
      */
     public static void configLocationPointStyle(AMap aMap) {
         MyLocationStyle myLocationStyle = new MyLocationStyle();
         //定义显示图标
-        myLocationStyle.myLocationIcon(BitmapDescriptorFactory.defaultMarker(BitmapDescriptorFactory.HUE_BLUE));
+        myLocationStyle.myLocationIcon(BitmapDescriptorFactory.defaultMarker
+                (BitmapDescriptorFactory.HUE_RED));
         //自定义精度范围的圆形边框颜色
         myLocationStyle.strokeColor(Color.argb(0, 0, 0, 0));
         //自定义精度范围的圆形边框宽度
@@ -172,7 +173,8 @@ public class GDLocationUtil {
                 .title(title)
                 .snippet(snippet)
                 .draggable(true);
-        aMap.addMarker(markerOption);
+        Marker marker = aMap.addMarker(markerOption);
+        marker.showInfoWindow();
     }
 
     /**
@@ -252,4 +254,6 @@ public class GDLocationUtil {
 
         );
     }
+
+
 }

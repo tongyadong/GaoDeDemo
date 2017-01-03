@@ -1,11 +1,8 @@
-package com.tony.gaodemap;
+package com.tony.gaodemap.activity;
 
-import android.app.Activity;
 import android.content.Context;
-import android.content.Intent;
-import android.os.Bundle;
-import android.text.TextUtils;
 import android.util.Log;
+import android.widget.Toast;
 
 import com.amap.api.location.AMapLocation;
 import com.amap.api.location.AMapLocationClient;
@@ -23,14 +20,16 @@ import com.amap.api.maps.model.Marker;
 import com.amap.api.services.nearby.NearbyInfo;
 import com.amap.api.services.nearby.NearbySearch;
 import com.amap.api.services.nearby.NearbySearchResult;
+import com.tony.gaodemap.R;
 import com.tony.gaodemap.util.GDLocationUtil;
-
 
 /**
  * Created by gambler on 16/10/20
+ *
+ * 定位界面
  */
-public class LocationActivity extends Activity implements AMap.OnMapClickListener,
-        AMapLocationListener, LocationSource, NearbySearch.NearbyListener, AMap.OnMarkerClickListener {
+public class LocationActivity extends BaseActivity implements AMap.OnMapClickListener,
+        AMapLocationListener, LocationSource, NearbySearch.NearbyListener, AMap.OnMarkerClickListener ,AMap.OnMapLoadedListener{
 
     /**
      * (company location)GDMap 坐标系:39.954136N , 116.372925E
@@ -40,47 +39,31 @@ public class LocationActivity extends Activity implements AMap.OnMapClickListene
     //private static final int FILL_COLOR = Color.argb(10, 0, 0, 180);
     private static final String USER_ID = "user_id";
 
-    private AMap aMap;
-    private MapView mapView;
-
     private Context ctx;
     private AMapLocationClient mLocationClient;
     private OnLocationChangedListener mListener;
     private boolean firstLocation;
-    private String userId;
+    private String userId ="001";
 
 
     @Override
-    protected void onCreate(Bundle savedInstanceState) {
-        super.onCreate(savedInstanceState);
-        setContentView(R.layout.activity_location);
-        mapView = (MapView) findViewById(R.id.map);
-        mapView.onCreate(savedInstanceState);/*** 必须重写*/
-        aMap = mapView.getMap();
+    public int getLayoutResourceId() {
+        return R.layout.activity_location;
+    }
+
+    @Override
+    public int getMapViewId() {
+        return R.id.map;
+    }
+
+    @Override
+    public void init(MapView mapView, AMap aMap) {
         aMap.setMapType(AMap.MAP_TYPE_NORMAL);//矢量地图模式
-        aMap.setTrafficEnabled(true);//实时交通显示
-        initData();
+        aMap.setTrafficEnabled(false);//实时交通显示
         addListener();
         configMap();
     }
 
-    /**
-     * 必须重写
-     */
-    @Override
-    protected void onResume() {
-        super.onResume();
-        mapView.onResume();
-    }
-
-    /**
-     * 必须重写
-     */
-    @Override
-    protected void onPause() {
-        super.onPause();
-        mapView.onPause();
-    }
 
     /**
      * 必须重写
@@ -88,26 +71,8 @@ public class LocationActivity extends Activity implements AMap.OnMapClickListene
     @Override
     protected void onDestroy() {
         super.onDestroy();
-        mapView.onDestroy();
-        GDLocationUtil.clearUserInfo(ctx, userId);
+        //销毁搜索引擎
         GDLocationUtil.destroyNearbySearch();
-    }
-
-    /**
-     * 必须重写
-     */
-    @Override
-    protected void onSaveInstanceState(Bundle outState) {
-        super.onSaveInstanceState(outState);
-        mapView.onSaveInstanceState(outState);
-    }
-
-    private void initData() {
-        Intent intent = getIntent();
-        if (intent != null) {
-            userId = TextUtils.isEmpty(intent.getStringExtra(USER_ID)) ? "unKnown" : intent
-                    .getStringExtra(USER_ID);
-        }
     }
 
     private void addListener() {
@@ -187,22 +152,27 @@ public class LocationActivity extends Activity implements AMap.OnMapClickListene
      * 定位成功后回调函数
      */
     @Override
-    public void onLocationChanged(AMapLocation aMapLocation) {
+    public void onLocationChanged(final AMapLocation aMapLocation) {
         if (aMapLocation != null) {
             if (aMapLocation.getErrorCode() == 0) {//定位成功
-                //显示系统定位点
-                mListener.onLocationChanged(aMapLocation);
-                //打印定位信息
-                GDLocationUtil.logAMapLocationInfo(aMapLocation);
-                if (!firstLocation) {
-                    moveToLocation(aMapLocation);
-                    //上传用户信息
-                    GDLocationUtil.uploadUserInfoOnce(ctx, aMapLocation, userId);
-                    firstLocation = true;
-                }
-                //以当前定位点进行附近搜索(10000米,10000秒)
-                GDLocationUtil.startSearchNearbyAsync(ctx, aMapLocation, 10000, 10000);
+                aMap.animateCamera(CameraUpdateFactory.zoomTo(17), new AMap.CancelableCallback() {
+                    @Override
+                    public void onFinish() {
+                        //显示系统定位点
+                        mListener.onLocationChanged(aMapLocation);
+                        if (!firstLocation) {
+                            //上传用户信息
+                            GDLocationUtil.uploadUserInfoOnce(ctx, aMapLocation, userId);
+                        }
+                        //以当前定位点进行附近搜索(10000米,10000秒)
+                        GDLocationUtil.startSearchNearbyAsync(ctx, aMapLocation, 10000, 10000);
+                    }
 
+                    @Override
+                    public void onCancel() {
+
+                    }
+                });
             } else {
                 //显示错误信息ErrCode是错误码，errInfo是错误信息，详见错误码表。
                 Log.e("aMapError", +aMapLocation.getErrorCode() + aMapLocation.getErrorInfo());
@@ -241,6 +211,9 @@ public class LocationActivity extends Activity implements AMap.OnMapClickListene
 
     @Override
     public void onNearbyInfoUploaded(int i) {
+        if(i == 1000){
+            firstLocation = true;
+        }
 
         GDLocationUtil.showToast(ctx, i == 1000 ? "用户信息上传成功" : "用户信息上传失败");
 
@@ -260,29 +233,36 @@ public class LocationActivity extends Activity implements AMap.OnMapClickListene
                     && nearbySearchResult.getNearbyInfoList() != null
                     && nearbySearchResult.getNearbyInfoList().size() > 0) {
 
+
                 for (NearbyInfo nearbyInfo : nearbySearchResult.getNearbyInfoList()) {
-                    //添加marker
-                    LatLng latLng = new LatLng(nearbyInfo.getPoint().getLatitude(), nearbyInfo
-                            .getPoint().getLongitude());
-                    GDLocationUtil.addMarkerToMap(aMap, latLng, "USER:" + nearbyInfo.getUserID(),
-                            "hello");
+                    if(!nearbyInfo.getUserID().equals(userId)) {
+                        //添加marker
+                        LatLng latLng = new LatLng(nearbyInfo.getPoint().getLatitude(), nearbyInfo
+                                .getPoint().getLongitude());
+                        GDLocationUtil.addMarkerToMap(aMap, latLng, "USER:"+ nearbyInfo.getUserID(), "hello");
+                    }
                 }
 
             } else {
                 GDLocationUtil.showToast(ctx, "周边搜索结果为空");
             }
         } else {
-            GDLocationUtil.showToast(ctx, "\"周边搜索出现异常，异常码为：\"+resultCode");
+            GDLocationUtil.showToast(ctx, "\"周边搜索出现异常，异常码为：\""+resultCode);
         }
     }
 
 
     @Override
     public boolean onMarkerClick(Marker marker) {
-        if (aMap != null) {
-            GDLocationUtil.jumpPoint(aMap, marker);
-        }
         GDLocationUtil.showToast(ctx, marker.getId() == null ? "Humax" : marker.getId());
         return true;
     }
+
+    @Override
+    public void onMapLoaded() {
+
+        Toast.makeText(ctx, "地图加载完成", Toast.LENGTH_SHORT).show();
+    }
+
+
 }

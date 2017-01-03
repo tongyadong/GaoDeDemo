@@ -11,4 +11,5 @@
     <string name="base_map">基本地图</string>
     <string name="weather_report">天气预报</string>
     <string name="location_map">定位地图</string>
+    <string name="cluster_show">聚合显示</string>
 </resources>
